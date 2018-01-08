@@ -42,31 +42,31 @@ const float PI = 3.14159265358979323846f;
 const float INFINITY = 1000000.f;
 
 // frac of type 1/n for acos_stable
-const float frac1[25] = { 0,
-                          1.f,
-                          1.f / 2,
-                          1.f / 3,
-                          1.f / 4,
-                          1.f / 5,
-                          1.f / 6,
-                          1.f / 7,
-                          1.f / 8,
-                          1.f / 9,
-                          1.f / 10,
-                          1.f / 11,
-                          1.f / 12,
-                          1.f / 13,
-                          1.f / 14,
-                          1.f / 15,
-                          1.f / 16,
-                          1.f / 17,
-                          1.f / 18,
-                          1.f / 19,
-                          1.f / 20,
-                          1.f / 21,
-                          1.f / 22,
-                          1.f / 23,
-                          1.f / 24 };
+const double frac1[25] = { 0,
+                          1.,
+                          1. / 2,
+                          1. / 3,
+                          1. / 4,
+                          1. / 5,
+                          1. / 6,
+                          1. / 7,
+                          1. / 8,
+                          1. / 9,
+                          1. / 10,
+                          1. / 11,
+                          1. / 12,
+                          1. / 13,
+                          1. / 14,
+                          1. / 15,
+                          1. / 16,
+                          1. / 17,
+                          1. / 18,
+                          1. / 19,
+                          1. / 20,
+                          1. / 21,
+                          1. / 22,
+                          1. / 23,
+                          1. / 24 };
 
 
 
@@ -268,14 +268,14 @@ struct Vec2f
    DLLEXPORT static Vec2f get_circle_center(Vec2f a, Vec2f b, Vec2f c);
    
    DLLEXPORT static float asin_stable(float x) {
-      float x2 = x * x;
-      float res = 0;
-      float y = x;
+      double x2 = x * x;
+      double res = 0;
+      double y = x;
       for (int i = 0; i < 12; i++) {
          res += y * frac1[2*i + 1];
-         y *= (1.f - frac1[2*i + 2]) * x2;
+         y *= (1. - frac1[2*i + 2]) * x2;
       }
-      return res;
+      return (float)res;
    }
 
    DLLEXPORT static float acos_stable(float x) {
