@@ -6,7 +6,6 @@ from optparse import OptionParser
 import os
 import re
 import shutil
-import subprocess
 import sys
 import zipfile
 
@@ -14,8 +13,35 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "api"))
 from get_indigo_version import getIndigoVersion
 
 
+#check_call = None
+if sys.platform != 'cli':
+    import subprocess
+    if not hasattr(subprocess, 'check_call'):
+        def check_call_replacement(*popenargs, **kwargs):
+            retcode = subprocess.call(*popenargs, **kwargs)
+            if retcode:
+                cmd = kwargs.get("args")
+                if cmd is None:
+                    cmd = popenargs[0]
+                raise subprocess.CalledProcessError(retcode, cmd)
+            return 0
+        _check_call = check_call_replacement
+    else:
+        _check_call = subprocess.check_call
+    def check_call(*args, **kwargs):
+        print(args[0])
+        return _check_call(*args, **kwargs)
+else:
+    def check_call(*args, **kwargs):
+        print(args[0].strip())
+        retcode = os.system(args[0])
+        if retcode:
+            raise RuntimeError('Calling {} failed with exit code {}'.format(args[0], retcode))
+        return 0
+
+
 def flatten_directory(dir):
-    todelete = []
+    # todelete = []
     for f in os.listdir(dir):
         if f.find("python") != -1 or f.find("java") != -1 or f.find("dotnet") != -1:
             continue
@@ -24,7 +50,7 @@ def flatten_directory(dir):
             for f2 in os.listdir(dir2):
                 f2full = os.path.join(dir2, f2)
                 shutil.move(f2full, dir)
-            todelete.append(dir2)
+            # todelete.append(dir2)
             os.rmdir(dir2)
 
 
@@ -80,14 +106,19 @@ def clear_libs():
         else:
             os.remove(ffull)
 
-
 def unpack_to_libs(name):
     with zipfile.ZipFile('{}.zip'.format(name)) as zf:
         zf.extractall(libs_dir)
         unzipped_folder = os.path.join(libs_dir, os.path.basename(name))
-        shutil.move(os.path.join(unzipped_folder, 'shared'), libs_dir)
+        unzipped_shared_folder = os.path.join(unzipped_folder, 'shared')
+        libs_shared_folder= os.path.join(libs_dir, 'shared')
+        if not os.path.exists(libs_shared_folder):
+            os.mkdir(libs_shared_folder)
+        for folder in os.listdir(unzipped_shared_folder):
+            if os.path.exists(os.path.join(libs_shared_folder, folder)):
+                shutil.rmtree(os.path.join(libs_shared_folder, folder))
+            shutil.copytree(os.path.join(unzipped_shared_folder, folder), os.path.join(libs_shared_folder, folder))
         shutil.rmtree(unzipped_folder)
-
 
 @contextmanager
 def cwd(path):
@@ -144,10 +175,8 @@ if __name__ == '__main__':
     version = getIndigoVersion()
 
     with cwd(os.path.join(os.path.split(__file__)[0], '..', 'dist')):
-
         if need_join_archieves:
             flatten_directory(".")
-
         if need_join_archieves:
             for dest, pattern in arc_joins:
                 p = pattern.replace("%ver%", version) + "\.zip"
@@ -157,7 +186,7 @@ if __name__ == '__main__':
         print("*** Making wrappers *** ")
 
         api_dir = os.path.abspath(os.path.join("..", "api"))
-        libs_dir = os.path.join(api_dir, "libs")
+        libs_dir = os.path.join(api_dir, "libs/")
 
         for w, libs in wrappers:
             clear_libs()
@@ -171,6 +200,7 @@ if __name__ == '__main__':
                     unpack_to_libs(name)
                 else:
                     any_exists = any_exists and False
+                    break
             if not any_exists:
                 continue
             if need_gen_wrappers:
@@ -179,5 +209,4 @@ if __name__ == '__main__':
                         for g in args.type.split(','):
                             if gen.find(g) != -1:
                                 command = '"%s" "%s" -s "-%s"' % (sys.executable, os.path.join(api_dir, gen), w)
-                                print(command)
-                                subprocess.check_call(command, shell=True)
+                                check_call(command, shell=True)

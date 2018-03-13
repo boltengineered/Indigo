@@ -1,25 +1,33 @@
 import os
 import platform
 import shutil
-import subprocess
 import sys
 
 from optparse import OptionParser
 
 
 check_call = None
-if not hasattr(subprocess, 'check_call'):
-    def check_call_replacement(*popenargs, **kwargs):
-        retcode = subprocess.call(*popenargs, **kwargs)
-        if retcode:
-            cmd = kwargs.get("args")
-            if cmd is None:
-                cmd = popenargs[0]
-            raise subprocess.CalledProcessError(retcode, cmd)
-        return 0
-    check_call = check_call_replacement
+if sys.platform != 'cli':
+    import subprocess
+    if not hasattr(subprocess, 'check_call'):
+        def check_call_replacement(*popenargs, **kwargs):
+            retcode = subprocess.call(*popenargs, **kwargs)
+            if retcode:
+                cmd = kwargs.get("args")
+                if cmd is None:
+                    cmd = popenargs[0]
+                raise subprocess.CalledProcessError(retcode, cmd)
+            return 0
+        check_call = check_call_replacement
+    else:
+        check_call = subprocess.check_call
 else:
-    check_call = subprocess.check_call
+    def check_call(*args, **kwargs):
+        print(args[0].strip())
+        retcode = os.system(args[0])
+        if retcode:
+            raise RuntimeError('Calling {} failed with exit code {}'.format(args[0], retcode))
+        return 0
 
 
 def get_cpu_count():
@@ -29,8 +37,12 @@ def get_cpu_count():
         runtime = Runtime.getRuntime()
         cpu_count = runtime.availableProcessors()
     else:
-        import multiprocessing
-        cpu_count = multiprocessing.cpu_count()
+        if sys.platform == 'cli':
+            import System
+            cpu_count = System.Environment.ProcessorCount
+        else:
+            import multiprocessing
+            cpu_count = multiprocessing.cpu_count()
     return cpu_count
 
 
@@ -42,9 +54,9 @@ def build_libs(cl_args):
         "win64-2015": ("Visual Studio 14 Win64", ""),
         "win32-mingw": ("MinGW Makefiles", ""),
         "linux32": ("Unix Makefiles", "-DSUBSYSTEM_NAME=x86"),
-        "linux32-universal": ("Unix Makefiles", "-DSUBSYSTEM_NAME=x86"),
+        "linux32-universal": ('Unix Makefiles', "-DSUBSYSTEM_NAME=x86"),
         "linux64": ("Unix Makefiles", "-DSUBSYSTEM_NAME=x64"),
-        "linux64-universal": ("Unix Makefiles", "-DSUBSYSTEM_NAME=x64"),
+        "linux64-universal": ('Unix Makefiles', "-DSUBSYSTEM_NAME=x64"),
         "mac10.7": ("Xcode", "-DSUBSYSTEM_NAME=10.7"),
         "mac10.8": ("Xcode", "-DSUBSYSTEM_NAME=10.8"),
         "mac10.9": ("Xcode", "-DSUBSYSTEM_NAME=10.9"),
@@ -71,6 +83,7 @@ def build_libs(cl_args):
     parser.add_option('--find-cairo', dest="findcairo", default=False, action="store_true", help='Find and use system Cairo')
     parser.add_option('--find-pixman', dest="findpixman", default=False, action="store_true", help='Find and use system Pixman')
     parser.add_option('--no-multithreaded-build', dest='mtbuild', default=True, action='store_false', help='Use only 1 core to build')
+    parser.add_option('--skip-tests', dest='skip_tests', default=False, action='store_true', help='Skip calling ctest')
     if os.name == 'posix':
         parser.add_option('--check-abi', dest='checkabi', default=False, action="store_true", help='Check ABI type of Indigo libraries on Linux')
 
@@ -82,17 +95,34 @@ def build_libs(cl_args):
     if args.preset:
         args.generator, args.params = presets[args.preset]
     else:
+        print('Trying to auto-select preset...')
         if os.name == 'java':
             from java.lang import System
             system = System.getProperty("os.name")
         else:
-            system = platform.system()
+            if sys.platform == 'cli':
+                if os.name == 'posix':
+                    if platform.mac_ver()[0]:
+                        system = 'Darwin'
+                    else:
+                        system = 'Linux'
+                elif os.name == 'nt':
+                    system = 'Windows'
+                else:
+                    raise NotImplementedException('Unsupported IronPython OS: {}'.format(os.name))
+            else:
+                system = platform.system()
 
         if system in ('Darwin', 'Mac OS X'):
             mac_version = platform.mac_ver()[0] if os.name != 'java' else System.getProperty('os.version')
             preset = 'mac{}'.format('.'.join(mac_version.split('.')[:2]))
         elif system == 'Linux':
-            preset = 'linux{}'.format(platform.architecture()[0][:2])
+            if sys.platform == 'cli':
+                import System
+                arch = '64' if System.IntPtr.Size == 8 else '32'
+            else:
+                arch = platform.architecture()[0][:2]
+            preset = 'linux{}'.format(arch)
         elif system == 'Windows':
             preset = ''
             auto_vs = True
@@ -131,8 +161,8 @@ def build_libs(cl_args):
     if args.findcairo:
         args.params += ' -DUSE_SYSTEM_PIXMAN=TRUE'
 
-    if not args.withStatic:
-        args.params += ' -DNO_STATIC=TRUE'
+    if args.withStatic:
+        args.params += ' -DWITH_STATIC=TRUE'
 
     if args.preset and args.preset.find('universal') != -1:
         args.params += ' -DUNIVERSAL_BUILD=TRUE'
@@ -156,8 +186,7 @@ def build_libs(cl_args):
     environment_prefix = ''
     if args.preset and (args.preset.find('linux') != -1 and args.preset.find('universal') != -1):
         environment_prefix = 'CC=gcc CXX=g++'
-    command = "%s cmake %s %s %s" % (environment_prefix, '-G \"%s\"' % args.generator if args.generator else '', args.params, project_dir)
-    print(command)
+    command = "%s cmake %s %s %s" % (environment_prefix, "-G '%s'" % args.generator if args.generator else '', args.params, project_dir)
     check_call(command, shell=True)
 
     if args.nobuild:
@@ -192,7 +221,9 @@ def build_libs(cl_args):
         check_call("mingw32-make install", shell=True)
     else:
         print("Do not know how to run package and install target")
-    check_call("ctest -V --timeout 60 -C %s ." % (args.config), shell=True)
+
+    if not args.skip_tests:
+	check_call("ctest -V --timeout 60 -C %s ." % (args.config), shell=True)
 
     os.chdir(root)
     if not os.path.exists("dist"):

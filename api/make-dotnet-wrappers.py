@@ -2,16 +2,38 @@ from optparse import OptionParser
 import os
 from os.path import join, abspath, dirname
 import shutil
-import subprocess
+import sys
 
 from get_indigo_version import getIndigoVersion
 
+check_call = None
+if sys.platform != 'cli':
+    import subprocess
+    if not hasattr(subprocess, 'check_call'):
+        def check_call_replacement(*popenargs, **kwargs):
+            retcode = subprocess.call(*popenargs, **kwargs)
+            if retcode:
+                cmd = kwargs.get("args")
+                if cmd is None:
+                    cmd = popenargs[0]
+                raise subprocess.CalledProcessError(retcode, cmd)
+            return 0
+        check_call = check_call_replacement
+    else:
+        check_call = subprocess.check_call
+else:
+    def check_call(*args, **kwargs):
+        print(args[0].strip())
+        retcode = os.system(args[0])
+        if retcode:
+            raise RuntimeError('Calling {} failed with exit code {}'.format(args[0], retcode))
+        return 0
 
 if os.name == 'nt':
     msbuildcommand = 'msbuild /t:Rebuild /p:Configuration=Release'
 else:
     # Mono
-    msbuildcommand = 'xbuild /t:Rebuild /p:Configuration=Release'
+    msbuildcommand = 'msbuild /t:Rebuild /p:Configuration=Release'
 
 parser = OptionParser(description='Indigo .NET libraries build script')
 parser.add_option('--suffix', '-s', help='archive suffix', default="")
@@ -79,7 +101,7 @@ os.chdir(indigoDotNetPath)
 command = '%s /property:LibraryPath=%s /property:Win2013=%s /property:Win2015=%s /property:Linux=%s /property:Mac=%s /property:Copy=%s' % (
     msbuildcommand, libraryPath, win2013, win2015, linux, mac, 'copy' if os.name == 'nt' else 'cp')
 print(command)
-subprocess.check_call(command, shell=True)
+check_call(command, shell=True)
 
 # Build IndigoRenderer-dotnet
 indigoRendererDotNetPath = join(api_dir, "plugins", "renderer", "dotnet")
@@ -109,7 +131,7 @@ os.chdir(indigoRendererDotNetPath)
 command = '%s /property:LibraryPath=%s /property:Win=%s /property:Linux=%s /property:Mac=%s /property:Copy=%s' % (
     msbuildcommand, join(api_dir, 'libs', 'shared'), win, linux, mac, 'copy' if os.name == 'nt' else 'cp')
 print(command)
-subprocess.check_call(command, shell=True)
+check_call(command, shell=True)
 
 # Build IndigoInchi-dotnet
 indigoInchiDotNetPath = join(api_dir, "plugins", "inchi", "dotnet")
@@ -140,7 +162,7 @@ os.chdir(indigoInchiDotNetPath)
 command = '%s /property:LibraryPath=%s /property:Win=%s /property:Linux=%s /property:Mac=%s /property:Copy=%s' % (
     msbuildcommand, join(api_dir, 'libs', 'shared'), win, linux, mac, 'copy' if os.name == 'nt' else 'cp')
 print(command)
-subprocess.check_call(command, shell=True)
+check_call(command, shell=True)
 
 # Build Bingo-dotnet
 bingoDotNetPath = join(api_dir, "plugins", "bingo", "dotnet")
@@ -170,7 +192,7 @@ os.chdir(bingoDotNetPath)
 command = '%s /property:LibraryPath=%s /property:Win=%s /property:Linux=%s /property:Mac=%s /property:Copy=%s' % (
     msbuildcommand, join(api_dir, 'libs', 'shared'), win, linux, mac, 'copy' if os.name == 'nt' else 'cp')
 print(command)
-subprocess.check_call(command, shell=True)
+check_call(command, shell=True)
 
 # Zip results
 os.chdir(dist_dir)
