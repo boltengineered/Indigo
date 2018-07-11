@@ -106,6 +106,10 @@ void BingoPgConfig::updateByIndexConfig(PG_OBJECT index_ptr) {
       name_key = _rawConfig.findOrInsert("ignore_bad_valence");
       _toString(options.ignore_bad_valence, _rawConfig.value(name_key));
    }
+   if (options.ignore_stereochemistry_errors >= 0) {
+      name_key = _rawConfig.findOrInsert("ignore_stereochemistry_errors");
+      _toString(options.ignore_stereochemistry_errors, _rawConfig.value(name_key));
+   }
    if (options.fp_any_size >= 0) {
       name_key = _rawConfig.findOrInsert("fp_any_size");
       _toString(options.fp_any_size, _rawConfig.value(name_key));
