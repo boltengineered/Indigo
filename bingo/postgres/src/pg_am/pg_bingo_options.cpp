@@ -190,6 +190,13 @@ static relopt_int intRelOpts[] =
    },
    {
       {
+         "ignore_stereochemistry_errors",
+         "",
+         RELOPT_KIND_BINGO
+      }, -1, 0, 1
+   },
+   {
+      {
          "use_chem_similarity",
          "",
          RELOPT_KIND_BINGO
@@ -600,6 +607,8 @@ bingo_reloptions(Datum reloptions, bool validate) {
               offsetof(BingoStdRdOptions, index_parameters) + offsetof(BingoIndexOptions, reject_invalid_structures)},
       {"ignore_bad_valence", RELOPT_TYPE_INT,
               offsetof(BingoStdRdOptions, index_parameters) + offsetof(BingoIndexOptions, ignore_bad_valence)},
+      {"ignore_stereochemistry_errors", RELOPT_TYPE_INT,
+              offsetof(BingoStdRdOptions, index_parameters) + offsetof(BingoIndexOptions, ignore_stereochemistry_errors)},
       {"use_chem_similarity", RELOPT_TYPE_INT,
               offsetof(BingoStdRdOptions, index_parameters) + offsetof(BingoIndexOptions, use_chem_similarity)},
       {"fp_ord_size", RELOPT_TYPE_INT,
