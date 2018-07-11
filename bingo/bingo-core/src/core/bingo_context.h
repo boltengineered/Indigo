@@ -68,7 +68,8 @@ public:
    Nullable<bool> allow_non_unique_dearomatization;
    Nullable<bool> zero_unknown_aromatic_hydrogens;
    Nullable<bool> ignore_bad_valence;
-
+   Nullable<bool> ignore_stereochemistry_errors;
+   
    // Throw exception when invalid structure is being added to the index
    Nullable<bool> reject_invalid_structures;
 
