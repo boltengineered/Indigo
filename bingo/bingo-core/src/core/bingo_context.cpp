@@ -43,6 +43,7 @@ BingoContext::BingoContext (int id_)
    zero_unknown_aromatic_hydrogens.setName("zero-unknown-aromatic-hydrogens");
    reject_invalid_structures.setName("reject-invalid-structures");
    ignore_bad_valence.setName("ignore-bad-valence");
+   ignore_stereochemistry_errors.setName("ignore-stereochemistry-errors");
 }
 
 void BingoContext::reset ()
@@ -66,6 +67,7 @@ void BingoContext::reset ()
    zero_unknown_aromatic_hydrogens.reset();
    reject_invalid_structures.reset();
    ignore_bad_valence.reset();
+   ignore_stereochemistry_errors.reset();
 }
 
 BingoContext::~BingoContext ()
@@ -219,6 +221,7 @@ void BingoContext::setLoaderSettings (MoleculeAutoLoader &loader)
    loader.stereochemistry_options = getStereocentersOptions();
    loader.ignore_cistrans_errors = ignore_cistrans_errors;
    loader.ignore_bad_valence = ignore_bad_valence;
+   loader.ignore_stereochemistry_errors = ignore_stereochemistry_errors;
 }
 
 void BingoContext::setLoaderSettings(SmilesLoader &loader)
@@ -227,6 +230,7 @@ void BingoContext::setLoaderSettings(SmilesLoader &loader)
    loader.stereochemistry_options = getStereocentersOptions();
    loader.ignore_cistrans_errors = ignore_cistrans_errors;
    loader.ignore_bad_valence = ignore_bad_valence;
+   loader.ignore_stereochemistry_errors = ignore_stereochemistry_errors;
 }
 
 void BingoContext::setLoaderSettings(ReactionAutoLoader &loader)
@@ -236,6 +240,7 @@ void BingoContext::setLoaderSettings(ReactionAutoLoader &loader)
    loader.stereochemistry_options = getStereocentersOptions();
    loader.ignore_cistrans_errors = ignore_cistrans_errors;
    loader.ignore_bad_valence = ignore_bad_valence;
+   loader.ignore_stereochemistry_errors = ignore_stereochemistry_errors;
 }
 
 void BingoContext::setLoaderSettings(RSmilesLoader &loader)
@@ -244,5 +249,5 @@ void BingoContext::setLoaderSettings(RSmilesLoader &loader)
    loader.stereochemistry_options = getStereocentersOptions();
    loader.ignore_cistrans_errors = ignore_cistrans_errors;
    loader.ignore_bad_valence = ignore_bad_valence;
+   loader.ignore_stereochemistry_errors = ignore_stereochemistry_errors;
 }
-
