@@ -166,6 +166,8 @@ CEXPORT int bingoSetConfigInt (const char *name, int value)
          self.bingo_context->reject_invalid_structures = (value != 0);
       else if (strcasecmp(name, "ignore-bad-valence") == 0 || strcasecmp(name, "ignore_bad_valence") == 0)
          self.bingo_context->ignore_bad_valence = (value != 0);
+      else if (strcasecmp(name, "ignore-stereochemistry-errors") == 0 || strcasecmp(name, "ignore_stereochemistry_errors") == 0)
+         self.bingo_context->ignore_stereochemistry_errors = (value != 0);
       else
       {
          bool set = true;
@@ -239,6 +241,8 @@ CEXPORT int bingoGetConfigInt (const char *name, int *value)
          *value = (int) self.bingo_context->reject_invalid_structures;
       else if (strcasecmp(name, "ignore-bad-valence") == 0 || strcasecmp(name, "ignore_bad_valence") == 0)
          *value = (int) self.bingo_context->ignore_bad_valence;
+      else if (strcasecmp(name, "ignore-stereochemistry-errors") == 0 || strcasecmp(name, "ignore_stereochemistry_errors") == 0)
+         *value = (int) self.bingo_context->ignore_stereochemistry_errors;
       else
          throw BingoError("unknown parameter name: %s", name);
    }
